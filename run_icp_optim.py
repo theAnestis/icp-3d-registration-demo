@@ -1,4 +1,5 @@
 from typing import Optional
+import orjson
 import rich
 import transforms
 import open3d as o3d
@@ -489,7 +490,7 @@ def my_icp_point_to_plane(
         np.ndarray: The optimal transform.
     """
     fixed_cloud_3d = fixed_cloud[:, :3]
-    times = []
+    info = {"iteration": [], "rmse": [], "time": []}
     nn = NearestNeighbors(n_neighbors=1, algorithm="auto").fit(fixed_cloud_3d)
 
     rigid_transform = initial_guess
@@ -516,15 +517,21 @@ def my_icp_point_to_plane(
         rigid_transform = correction_transform @ rigid_transform
 
         t = perf_counter() - t
-        times.append(t)
+
+        info["iteration"].append(i)
+        info["rmse"].append(rmse)
+        info["time"].append(t)
+
         visualise_point_clouds([moved_cloud_3d, fixed_cloud_3d], save_dir="vis_optim", save_frame=True, frame_id=i)
         rich.print(f"Iteration {i + 1}\t |\t RMSE = {rmse} \t|\t Time: {int(t * 1000)}ms")
         if abs(prev_error - rmse) < tolerance:
-            rich.print(f"[bold green]Converged at iteration {i} with error {rmse} at {int(np.mean(times) * 1000)}ms per iteration.[/bold green]")
+            rich.print(f"[bold green]Converged at iteration {i} with error {rmse} at {int(np.mean(info['time']) * 1000)}ms per iteration.[/bold green]")
+            open("./res_simple.json", "wb").write(orjson.dumps(info))
             return rigid_transform
         prev_error = rmse
 
-    rich.print(f"[bold yellow]Did not converge - Last error: {prev_error} at {int(np.mean(times) * 1000)}ms per iteration/bold yellow]")
+    rich.print(f"[bold yellow]Did not converge - Last error: {prev_error} at {int(np.mean(info['time']) * 1000)}ms per iteration/bold yellow]")
+    open("./res_simple.json", "wb").write(orjson.dumps(info))
     return rigid_transform
 
 

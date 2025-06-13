@@ -1,10 +1,12 @@
-import rich
-import open3d as o3d
-import transforms
-from sklearn.neighbors import NearestNeighbors
-import numpy as np
+import orjson
 from time import perf_counter
 
+import numpy as np
+import open3d as o3d
+import rich
+from sklearn.neighbors import NearestNeighbors
+
+import transforms
 from vis import visualise_point_clouds
 
 
@@ -69,7 +71,7 @@ def my_icp(
     fixed_cloud_3d = fixed_cloud[:, :3]
     neighbours = NearestNeighbors(n_neighbors=1, algorithm="auto").fit(fixed_cloud_3d)
     prev_error = float("inf")
-    times = []
+    info = {"iteration": [], "rmse": [], "time": []}
 
     for i in range(iterations):
         t = perf_counter()
@@ -87,17 +89,22 @@ def my_icp(
         # Estimate the rigid transform between moving and fixed point clouds after the transformation has been applied.
         rigid_transform = estimate_rigid_transform(moved_cloud_3d, fixed_cloud_3d[indices.ravel()]) @ rigid_transform
         t = perf_counter() - t
-        times.append(t)
+
+        info["iteration"].append(i)
+        info["rmse"].append(rmse)
+        info["time"].append(t)
 
         visualise_point_clouds([moved_cloud_3d, fixed_cloud_3d], save_dir="vis_simple", save_frame=True, frame_id=i)
         # Reporting.
         rich.print(f"Iteration {i + 1}\t |\t RMSE = {rmse} \t|\t Time: {int(t * 1000)}ms")
         if abs(prev_error - rmse) < tolerance:
-            rich.print(f"Converged at iteration {i} with error {rmse} at {int(np.mean(times) * 1000)}ms per iteration.")
+            rich.print(f"Converged at iteration {i} with error {rmse} at {int(np.mean(info['time']) * 1000)}ms per iteration.")
+            open("./res_simple.json", "wb").write(orjson.dumps(info))
             return rigid_transform
         prev_error = rmse
 
-    rich.print(f"Did not converge - Last error: {prev_error} at {int(np.mean(times) * 1000)}ms per iteration")
+    rich.print(f"Did not converge - Last error: {prev_error} at {int(np.mean(info['time']) * 1000)}ms per iteration")
+    open("./res_simple.json", "wb").write(orjson.dumps(info))
     return rigid_transform
 
 
