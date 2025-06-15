@@ -33,3 +33,14 @@ You can run the demonstrations **after** downloading the liver 3d model, and set
 .venv/Scripts/python.exe run_icp_simple.py  # For simple ICP
 .venv/Scripts/python.exe run_icp_optim.py  # For optimised ICP
 ```
+
+## Results
+
+
+|  RMSE comparison | Time Comparison    |
+| --- | --- |
+| ![](./visualisations/icp_opt_vs_sim_rmse.png)  | ![](./visualisations/icp_opt_vs_sim_time.png) |
+
+|  Simple Convergence | Optimised Convergence    |
+| --- | --- |
+| ![](./visualisations/vis_simple.gif)  | ![](./visualisations/vis_optim.gif) |
